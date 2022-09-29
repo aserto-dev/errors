@@ -240,7 +240,17 @@ func (e *AsertoError) MarshalZerologObject(event *zerolog.Event) {
 }
 
 func (e *AsertoError) GRPCStatus() *status.Status {
-	return status.New(e.StatusCode, e.Message)
+	errResult := status.New(e.StatusCode, e.Message)
+	errResult, err := errResult.WithDetails(&errdetails.ErrorInfo{
+		Metadata: e.Data(),
+		Domain:   e.Code,
+	})
+
+	if err != nil {
+		return status.New(codes.Internal, "internal failure setting up error details, please contact the administrator")
+	}
+
+	return errResult
 }
 
 func (e *AsertoError) WithGRPCStatus(grpcCode codes.Code) *AsertoError {
