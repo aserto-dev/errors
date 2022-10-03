@@ -29,12 +29,12 @@ func NewAsertoError(code string, statusCode codes.Code, httpCode int, msg string
 }
 
 // AsertoError represents a well known error
-// comming from an Aserto service
+// coming from an Aserto service
 type AsertoError struct {
 	Code       string
 	StatusCode codes.Code
 	Message    string
-	HttpCode   int
+	HTTPCode   int
 	data       map[string]string
 	errs       []error
 }
@@ -67,7 +67,7 @@ func (e *AsertoError) Copy() *AsertoError {
 		Message:    e.Message,
 		data:       dataCopy,
 		errs:       e.errs,
-		HttpCode:   e.HttpCode,
+		HTTPCode:   e.HTTPCode,
 	}
 }
 
@@ -78,24 +78,23 @@ func (e *AsertoError) Error() string {
 		innerMessage = e.errs[0].Error()
 
 		for _, err := range e.errs[1:] {
-			innerMessage = strings.Join([]string{innerMessage, err.Error()}, ": ")
+			innerMessage = innerMessage + ": " + err.Error()
 		}
 	}
 	if len(e.data) > 0 {
 		for k, v := range e.data {
 			if k == "msg" {
 				if innerMessage != "" {
-					innerMessage = innerMessage + ": "
+					innerMessage += ": "
 				}
-				innerMessage = innerMessage + v
+				innerMessage += v
 			}
 		}
 	}
 	if innerMessage == "" {
 		return fmt.Sprintf("%s %s", e.Code, e.Message)
-	} else {
-		return fmt.Sprintf("%s %s: %s", e.Code, e.Message, innerMessage)
 	}
+	return fmt.Sprintf("%s %s: %s", e.Code, e.Message, innerMessage)
 }
 
 func (e *AsertoError) Fields() map[string]interface{} {
@@ -133,7 +132,7 @@ func (e *AsertoError) Msg(message string) *AsertoError {
 
 	if message != "" {
 		if existingMsg, ok := c.data[MessageKey]; ok {
-			c.data[MessageKey] = strings.Join([]string{existingMsg, message}, ": ")
+			c.data[MessageKey] = existingMsg + ": " + message
 		} else {
 			c.data[MessageKey] = message
 		}
@@ -148,7 +147,7 @@ func (e *AsertoError) Msgf(message string, args ...interface{}) *AsertoError {
 	message = fmt.Sprintf(message, args...)
 
 	if existingMsg, ok := c.data[MessageKey]; ok {
-		c.data[MessageKey] = strings.Join([]string{existingMsg, message}, ": ")
+		c.data[MessageKey] = existingMsg + ": " + message
 	} else {
 		c.data[MessageKey] = message
 	}
@@ -175,7 +174,7 @@ func (e *AsertoError) Int32(key string, value int32) *AsertoError {
 
 func (e *AsertoError) Int64(key string, value int64) *AsertoError {
 	c := e.Copy()
-	c.data[key] = strconv.FormatInt(int64(value), 10)
+	c.data[key] = strconv.FormatInt(value, 10)
 	return c
 }
 
@@ -261,7 +260,7 @@ func (e *AsertoError) WithGRPCStatus(grpcCode codes.Code) *AsertoError {
 
 func (e *AsertoError) WithHTTPStatus(httpStatus int) *AsertoError {
 	c := e.Copy()
-	c.HttpCode = httpStatus
+	c.HTTPCode = httpStatus
 	return c
 }
 
@@ -270,8 +269,7 @@ func (e *AsertoError) WithHTTPStatus(httpStatus int) *AsertoError {
 func FromGRPCStatus(grpcStatus status.Status) *AsertoError {
 	var result *AsertoError
 	for _, detail := range grpcStatus.Details() {
-		switch t := detail.(type) {
-		case *errdetails.ErrorInfo:
+		if t, ok := detail.(*errdetails.ErrorInfo); ok {
 			result = asertoErrors[t.Domain]
 			if result == nil {
 				return nil
