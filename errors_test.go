@@ -180,3 +180,19 @@ func TestCodeToAsertoErrorInvalidCode(t *testing.T) {
 
 	assert.Nil(asertoErr)
 }
+
+func TestWithGrpcError(t *testing.T) {
+	assert := require.New(t)
+	aerr := cerr.NewAsertoError("E000001", codes.Unavailable, http.StatusServiceUnavailable, "failed to setup").WithGRPCStatus(codes.Aborted)
+
+	unAerr := cerr.UnwrapAsertoError(aerr)
+	assert.Equal(codes.Aborted, unAerr.GRPCStatus().Code())
+}
+
+func TestWithHttpError(t *testing.T) {
+	assert := require.New(t)
+	aerr := cerr.NewAsertoError("E000001", codes.Unavailable, http.StatusServiceUnavailable, "failed to setup").WithHTTPStatus(http.StatusNotAcceptable)
+
+	unAerr := cerr.UnwrapAsertoError(aerr)
+	assert.Equal(http.StatusNotAcceptable, unAerr.HTTPCode)
+}
