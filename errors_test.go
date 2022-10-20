@@ -1,9 +1,10 @@
 package errors_test
 
 import (
-	"errors"
 	"net/http"
 	"testing"
+
+	"github.com/pkg/errors"
 
 	cerr "github.com/aserto-dev/errors"
 	"github.com/stretchr/testify/require"
@@ -184,8 +185,9 @@ func TestCodeToAsertoErrorInvalidCode(t *testing.T) {
 func TestWithGrpcError(t *testing.T) {
 	assert := require.New(t)
 	aerr := cerr.NewAsertoError("E000001", codes.Unavailable, http.StatusServiceUnavailable, "failed to setup").WithGRPCStatus(codes.Aborted)
+	berr := errors.Wrap(aerr, "new err")
 
-	unAerr := cerr.UnwrapAsertoError(aerr)
+	unAerr := cerr.UnwrapAsertoError(berr)
 	assert.Equal(codes.Aborted, unAerr.GRPCStatus().Code())
 }
 

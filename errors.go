@@ -292,14 +292,8 @@ func UnwrapAsertoError(err error) *AsertoError {
 	if initialError == nil {
 		initialError = err
 	}
-	grpcStatus, ok := status.FromError(initialError)
-	if ok {
-		aErr := FromGRPCStatus(*grpcStatus)
-		if aErr != nil {
-			return aErr
-		}
-	}
 
+	// try to process Aserto error.
 	for {
 		aErr, ok := err.(*AsertoError)
 		if ok {
@@ -308,9 +302,20 @@ func UnwrapAsertoError(err error) *AsertoError {
 
 		err = errors.Unwrap(err)
 		if err == nil {
-			return nil
+			break
 		}
 	}
+
+	// If it's not an Aserto error, try to construct one from grpc status.
+	grpcStatus, ok := status.FromError(initialError)
+	if ok {
+		aErr := FromGRPCStatus(*grpcStatus)
+		if aErr != nil {
+			return aErr
+		}
+	}
+
+	return nil
 }
 
 // Returns true if the given errors are Aserto errors with the same code or both of them are nil.
