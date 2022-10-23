@@ -1,0 +1,1 @@
+# errors - define, construct and manage service errors
