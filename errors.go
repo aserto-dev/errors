@@ -3,6 +3,7 @@ package errors
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -19,6 +20,8 @@ const (
 )
 
 var (
+	ErrUnknown = NewAsertoError("E00000", codes.Internal, http.StatusInternalServerError, "an unknown error has occurred")
+
 	asertoErrors = make(map[string]*AsertoError)
 )
 
