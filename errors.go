@@ -271,6 +271,11 @@ func (e *AsertoError) WithHTTPStatus(httpStatus int) *AsertoError {
 // and if there are details from multiple errors, the aserto error will be constructed based on the first one.
 func FromGRPCStatus(grpcStatus status.Status) *AsertoError {
 	var result *AsertoError
+
+	if len(grpcStatus.Details()) == 0 {
+		return ErrUnknown.Msg(grpcStatus.Message())
+	}
+
 	for _, detail := range grpcStatus.Details() {
 		if t, ok := detail.(*errdetails.ErrorInfo); ok {
 			result = asertoErrors[t.Domain]
@@ -283,6 +288,7 @@ func FromGRPCStatus(grpcStatus status.Status) *AsertoError {
 			break
 		}
 	}
+
 	return result
 }
 
