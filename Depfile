@@ -1,4 +1,3 @@
----
 go:
   gotestsum:
     importPath: "gotest.tools/gotestsum"
