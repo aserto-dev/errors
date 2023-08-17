@@ -32,7 +32,7 @@ func NewAsertoError(code string, statusCode codes.Code, httpCode int, msg string
 }
 
 // AsertoError represents a well known error
-// coming from an Aserto service
+// coming from an Aserto service.
 type AsertoError struct {
 	Code       string
 	StatusCode codes.Code
@@ -47,10 +47,10 @@ func (e *AsertoError) Data() map[string]string {
 }
 
 // SameAs returns true if the provided error is an AsertoError
-// and has the same error code
+// and has the same error code.
 func (e *AsertoError) SameAs(err error) bool {
 	aErr, ok := err.(*AsertoError)
-	if !ok {
+	if err == nil || !ok {
 		return false
 	}
 
@@ -221,6 +221,10 @@ func (e *AsertoError) Interface(key string, value interface{}) *AsertoError {
 }
 
 func (e *AsertoError) Unwrap() error {
+	if e == nil {
+		return nil
+	}
+
 	if len(e.errs) > 0 {
 		return e.errs[len(e.errs)-1]
 	}
