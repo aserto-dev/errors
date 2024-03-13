@@ -17,6 +17,7 @@ import (
 
 const (
 	MessageKey = "msg"
+	colon      = ": "
 )
 
 var (
@@ -81,14 +82,14 @@ func (e *AsertoError) Error() string {
 		innerMessage = e.errs[0].Error()
 
 		for _, err := range e.errs[1:] {
-			innerMessage = innerMessage + ": " + err.Error()
+			innerMessage = innerMessage + colon + err.Error()
 		}
 	}
 	if len(e.data) > 0 {
 		for k, v := range e.data {
 			if k == "msg" {
 				if innerMessage != "" {
-					innerMessage += ": "
+					innerMessage += colon
 				}
 				innerMessage += v
 			}
@@ -135,7 +136,7 @@ func (e *AsertoError) Msg(message string) *AsertoError {
 
 	if message != "" {
 		if existingMsg, ok := c.data[MessageKey]; ok {
-			c.data[MessageKey] = existingMsg + ": " + message
+			c.data[MessageKey] = existingMsg + colon + message
 		} else {
 			c.data[MessageKey] = message
 		}
@@ -150,7 +151,7 @@ func (e *AsertoError) Msgf(message string, args ...interface{}) *AsertoError {
 	message = fmt.Sprintf(message, args...)
 
 	if existingMsg, ok := c.data[MessageKey]; ok {
-		c.data[MessageKey] = existingMsg + ": " + message
+		c.data[MessageKey] = existingMsg + colon + message
 	} else {
 		c.data[MessageKey] = message
 	}
