@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -8,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/aserto-dev/errors/werr"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -27,7 +29,7 @@ var (
 )
 
 func NewAsertoError(code string, statusCode codes.Code, httpCode int, msg string) *AsertoError {
-	asertoError := &AsertoError{code, statusCode, msg, httpCode, map[string]string{}, nil}
+	asertoError := &AsertoError{code, statusCode, msg, httpCode, map[string]string{}, nil, nil}
 	asertoErrors[code] = asertoError
 	return asertoError
 }
@@ -41,6 +43,14 @@ type AsertoError struct {
 	HTTPCode   int
 	data       map[string]string
 	errs       []error
+	Ctx        context.Context
+}
+
+// Associates a context with the AsertoError.
+func (e *AsertoError) WithContext(ctx context.Context) *AsertoError {
+	c := e.Copy()
+	c.Ctx = ctx
+	return c
 }
 
 func (e *AsertoError) Data() map[string]string {
@@ -312,6 +322,15 @@ func UnwrapAsertoError(err error) *AsertoError {
 		aErr, ok := err.(*AsertoError)
 		if ok {
 			return aErr
+		}
+
+		wErr, ok := err.(*werr.WrappedError)
+		if ok {
+			aErr, ok = wErr.Err.(*AsertoError)
+			if ok {
+				aErr.Ctx = wErr.Ctx
+				return aErr
+			}
 		}
 
 		err = errors.Unwrap(err)
