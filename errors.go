@@ -308,7 +308,15 @@ func FromGRPCStatus(grpcStatus status.Status) *AsertoError {
 	return result
 }
 
-// Return the inner most logger stored in the error context.
+/**
+ * Logger is a function that retrieves the most inner logger associated with an error.
+ *
+ * Parameters:
+ * - err: The error for which to retrieve the logger.
+ *
+ * Returns:
+ * - logger: The logger associated with the error. If the error is nil or no logger is found, nil is returned.
+ */
 func Logger(err error) *zerolog.Logger {
 	var logger *zerolog.Logger
 
@@ -321,23 +329,15 @@ func Logger(err error) *zerolog.Logger {
 		if ok {
 			aErr, ok := wErr.Err.(*AsertoError)
 			if ok {
-				newLogger := getLogger(aErr.Ctx)
-				if newLogger != nil {
-					logger = newLogger
-				}
+				setLogger(aErr.Ctx, &logger)
 			}
-			newLogger := getLogger(wErr.Ctx)
-			if newLogger != nil {
-				logger = newLogger
-			}
+			setLogger(wErr.Ctx, &logger)
 		}
 
 		aErr, ok := err.(*AsertoError)
 		if ok {
-			newLogger := getLogger(aErr.Ctx)
-			if newLogger != nil {
-				logger = newLogger
-			}
+			setLogger(aErr.Ctx, &logger)
+
 		}
 
 		err = errors.Unwrap(err)
@@ -349,16 +349,25 @@ func Logger(err error) *zerolog.Logger {
 	return logger
 }
 
-func getLogger(ctx context.Context) *zerolog.Logger {
+/**
+ * setLogger sets the logger pointer to the logger stored in the provided context.
+ * If the context is nil or the logger in the context is nil, the logger pointer remains unchanged.
+ * If the logger in the context is the default context logger or has a disabled level, the logger pointer remains unchanged.
+ *
+ * @param ctx The context from which to retrieve the logger.
+ * @param logger The pointer to the logger to be set.
+ */
+func setLogger(ctx context.Context, logger **zerolog.Logger) {
 	if ctx == nil {
-		return nil
-	}
-	logger := zerolog.Ctx(ctx)
-	if logger == nil || logger == zerolog.DefaultContextLogger || logger.GetLevel() == zerolog.Disabled {
-		logger = nil
+		return
 	}
 
-	return logger
+	newLogger := zerolog.Ctx(ctx)
+	if newLogger == nil || newLogger == zerolog.DefaultContextLogger || newLogger.GetLevel() == zerolog.Disabled {
+		return
+	}
+
+	*logger = newLogger
 }
 
 func UnwrapAsertoError(err error) *AsertoError {
