@@ -82,6 +82,7 @@ func (e *AsertoError) Copy() *AsertoError {
 		data:       dataCopy,
 		errs:       e.errs,
 		HTTPCode:   e.HTTPCode,
+		Ctx:        e.Ctx,
 	}
 }
 
@@ -307,6 +308,59 @@ func FromGRPCStatus(grpcStatus status.Status) *AsertoError {
 	return result
 }
 
+// Return the inner most logger stored in the error context.
+func Logger(err error) *zerolog.Logger {
+	var logger *zerolog.Logger
+
+	if err == nil {
+		return logger
+	}
+
+	for {
+		wErr, ok := err.(*werr.WrappedError)
+		if ok {
+			aErr, ok := wErr.Err.(*AsertoError)
+			if ok {
+				newLogger := getLogger(aErr.Ctx)
+				if newLogger != nil {
+					logger = newLogger
+				}
+			}
+			newLogger := getLogger(wErr.Ctx)
+			if newLogger != nil {
+				logger = newLogger
+			}
+		}
+
+		aErr, ok := err.(*AsertoError)
+		if ok {
+			newLogger := getLogger(aErr.Ctx)
+			if newLogger != nil {
+				logger = newLogger
+			}
+		}
+
+		err = errors.Unwrap(err)
+		if err == nil {
+			break
+		}
+	}
+
+	return logger
+}
+
+func getLogger(ctx context.Context) *zerolog.Logger {
+	if ctx == nil {
+		return nil
+	}
+	logger := zerolog.Ctx(ctx)
+	if logger == nil || logger == zerolog.DefaultContextLogger || logger.GetLevel() == zerolog.Disabled {
+		logger = nil
+	}
+
+	return logger
+}
+
 func UnwrapAsertoError(err error) *AsertoError {
 	if err == nil {
 		return nil
@@ -319,18 +373,17 @@ func UnwrapAsertoError(err error) *AsertoError {
 
 	// try to process Aserto error.
 	for {
+		wErr, ok := err.(*werr.WrappedError)
+		if ok {
+			aErr, ok := wErr.Err.(*AsertoError)
+			if ok {
+				return aErr
+			}
+		}
+
 		aErr, ok := err.(*AsertoError)
 		if ok {
 			return aErr
-		}
-
-		wErr, ok := err.(*werr.WrappedError)
-		if ok {
-			aErr, ok = wErr.Err.(*AsertoError)
-			if ok {
-				aErr.Ctx = wErr.Ctx
-				return aErr
-			}
 		}
 
 		err = errors.Unwrap(err)

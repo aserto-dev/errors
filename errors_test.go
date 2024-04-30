@@ -1,12 +1,16 @@
 package errors_test
 
 import (
+	"context"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 
 	cerr "github.com/aserto-dev/errors"
+	"github.com/aserto-dev/errors/werr"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc/codes"
@@ -197,4 +201,100 @@ func TestWithHttpError(t *testing.T) {
 
 	unAerr := cerr.UnwrapAsertoError(aerr)
 	assert.Equal(http.StatusNotAcceptable, unAerr.HTTPCode)
+}
+
+// returns nil logger if error is nil
+func TestLoggerWithNilError(t *testing.T) {
+	assert := require.New(t)
+
+	var err error
+	logger := cerr.Logger(err)
+	assert.Nil(logger)
+}
+
+func TestLoggerWithWrappedNilError(t *testing.T) {
+	assert := require.New(t)
+
+	var err error
+	ctx := context.Background()
+
+	logger := cerr.Logger(werr.Wrap(err, ctx))
+	assert.Nil(logger)
+}
+
+func TestLoggerWithWrappedErrorsWithContext(t *testing.T) {
+	assert := require.New(t)
+
+	ctx := context.Background()
+	err := cerr.NewAsertoError("E00001", codes.Internal, http.StatusInternalServerError, "internal error").WithContext(ctx)
+	wrappedErr := errors.Wrap(err, "wrapped error")
+
+	logger := cerr.Logger(wrappedErr)
+	assert.Nil(logger)
+}
+
+func TestLoggerWithWrappedMultipleWithoutErrorsWithContext(t *testing.T) {
+	assert := require.New(t)
+	initialLogger := zerolog.New(os.Stderr)
+
+	ctx1 := context.Background()
+	ctx := initialLogger.WithContext(ctx1)
+	err := cerr.NewAsertoError("E00001", codes.Internal, http.StatusInternalServerError, "internal error").WithContext(ctx)
+	errWithoutCtx := cerr.NewAsertoError("E00002", codes.Internal, http.StatusInternalServerError, "internal error")
+	wrappedErr := errors.Wrap(errWithoutCtx.Err(err), "wrapped error")
+
+	logger := cerr.Logger(wrappedErr)
+	assert.NotNil(logger)
+	assert.Equal(logger, zerolog.Ctx(ctx))
+}
+
+func TestLoggerWithWrappedMultipleErrorsWithContext(t *testing.T) {
+	assert := require.New(t)
+	initialLogger := zerolog.New(os.Stderr)
+
+	ctx1 := context.Background()
+	ctx := initialLogger.WithContext(ctx1)
+	err := cerr.NewAsertoError("E00001", codes.Internal, http.StatusInternalServerError, "internal error").WithContext(ctx)
+	errWithoutCtx := cerr.NewAsertoError("E00002", codes.Internal, http.StatusInternalServerError, "internal error")
+	wrappedErr := errors.Wrap(err.Err(errWithoutCtx), "wrapped error")
+
+	logger := cerr.Logger(wrappedErr)
+	assert.NotNil(logger)
+	assert.Equal(logger, zerolog.Ctx(ctx))
+}
+
+func TestLoggerWithWrappedMultipleErrorsWithMultipleContexts(t *testing.T) {
+	assert := require.New(t)
+	initialLogger := zerolog.New(os.Stderr)
+	ctx1 := context.Background()
+	ctx2 := initialLogger.WithContext(ctx1)
+	err := cerr.NewAsertoError("E00001", codes.Internal, http.StatusInternalServerError, "internal error").WithContext(ctx1)
+	err2 := cerr.NewAsertoError("E00002", codes.Internal, http.StatusInternalServerError, "internal error").WithContext(ctx2)
+	wrappedErr := errors.Wrap(err.Err(err2), "wrapped error")
+
+	logger := cerr.Logger(wrappedErr)
+	ctx1Logger := zerolog.Ctx(ctx1)
+	ctx2Logger := zerolog.Ctx(ctx2)
+
+	assert.NotNil(logger)
+	assert.NotEqual(logger, ctx1Logger)
+	assert.Equal(logger, ctx2Logger)
+}
+
+func TestLoggerWithWrappedMultipleErrorsWithMultipleContextsOuter(t *testing.T) {
+	assert := require.New(t)
+	initialLogger := zerolog.New(os.Stderr)
+	ctx1 := context.Background()
+	ctx2 := initialLogger.WithContext(ctx1)
+	err := cerr.NewAsertoError("E00001", codes.Internal, http.StatusInternalServerError, "internal error").WithContext(ctx1)
+	err2 := cerr.NewAsertoError("E00002", codes.Internal, http.StatusInternalServerError, "internal error").WithContext(ctx2)
+	wrappedErr := errors.Wrap(err2.Err(err), "wrapped error")
+
+	logger := cerr.Logger(wrappedErr)
+	ctx1Logger := zerolog.Ctx(ctx1)
+	ctx2Logger := zerolog.Ctx(ctx2)
+
+	assert.NotNil(logger)
+	assert.NotEqual(logger, ctx1Logger)
+	assert.Equal(logger, ctx2Logger)
 }
