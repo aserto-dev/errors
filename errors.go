@@ -309,13 +309,7 @@ func FromGRPCStatus(grpcStatus status.Status) *AsertoError {
 }
 
 /**
- * Logger is a function that retrieves the most inner logger associated with an error.
- *
- * Parameters:
- * - err: The error for which to retrieve the logger.
- *
- * Returns:
- * - logger: The logger associated with the error. If the error is nil or no logger is found, nil is returned.
+ * Retrieves the most inner logger associated with an error.
  */
 func Logger(err error) *zerolog.Logger {
 	var logger *zerolog.Logger
