@@ -203,7 +203,7 @@ func TestWithHttpError(t *testing.T) {
 	assert.Equal(http.StatusNotAcceptable, unAerr.HTTPCode)
 }
 
-// returns nil logger if error is nil
+// returns nil logger if error is nil.
 func TestLoggerWithNilError(t *testing.T) {
 	assert := require.New(t)
 

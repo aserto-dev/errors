@@ -327,8 +327,8 @@ func Logger(err error) *zerolog.Logger {
 	for {
 		wErr, ok := err.(*werr.WrappedError)
 		if ok {
-			aErr, ok := wErr.Err.(*AsertoError)
-			if ok {
+			aErr, aOk := wErr.Err.(*AsertoError)
+			if aOk {
 				setLogger(aErr.Ctx, &logger)
 			}
 			setLogger(wErr.Ctx, &logger)
@@ -384,8 +384,8 @@ func UnwrapAsertoError(err error) *AsertoError {
 	for {
 		wErr, ok := err.(*werr.WrappedError)
 		if ok {
-			aErr, ok := wErr.Err.(*AsertoError)
-			if ok {
+			aErr, aOk := wErr.Err.(*AsertoError)
+			if aOk {
 				return aErr
 			}
 		}

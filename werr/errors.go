@@ -23,6 +23,13 @@ func Wrap(err error, ctx context.Context) *WrappedError {
 	}
 }
 
+func (w *WrappedError) WithContext(ctx context.Context) *WrappedError {
+	return &WrappedError{
+		Ctx: ctx,
+		Err: w.Err,
+	}
+}
+
 func (w *WrappedError) Unwrap() error {
 	return w.Err
 }
