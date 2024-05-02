@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aserto-dev/errors/werr"
 	"github.com/pkg/errors"
 	"github.com/rs/zerolog"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -29,7 +28,7 @@ var (
 )
 
 func NewAsertoError(code string, statusCode codes.Code, httpCode int, msg string) *AsertoError {
-	asertoError := &AsertoError{code, statusCode, msg, httpCode, map[string]string{}, nil, nil}
+	asertoError := &AsertoError{code, statusCode, msg, httpCode, map[string]string{}, nil}
 	asertoErrors[code] = asertoError
 	return asertoError
 }
@@ -43,14 +42,6 @@ type AsertoError struct {
 	HTTPCode   int
 	data       map[string]string
 	errs       []error
-	Ctx        context.Context
-}
-
-// Associates a context with the AsertoError.
-func (e *AsertoError) WithContext(ctx context.Context) *AsertoError {
-	c := e.Copy()
-	c.Ctx = ctx
-	return c
 }
 
 func (e *AsertoError) Data() map[string]string {
@@ -82,7 +73,6 @@ func (e *AsertoError) Copy() *AsertoError {
 		data:       dataCopy,
 		errs:       e.errs,
 		HTTPCode:   e.HTTPCode,
-		Ctx:        e.Ctx,
 	}
 }
 
@@ -283,6 +273,10 @@ func (e *AsertoError) WithHTTPStatus(httpStatus int) *AsertoError {
 	return c
 }
 
+func (e *AsertoError) Ctx(ctx context.Context) error {
+	return WrapWithContext(e, ctx)
+}
+
 // Returns an Aserto error based on a given grpcStatus. The details that are not of type errdetails.ErrorInfo are dropped.
 // and if there are details from multiple errors, the aserto error will be constructed based on the first one.
 func FromGRPCStatus(grpcStatus status.Status) *AsertoError {
@@ -319,19 +313,11 @@ func Logger(err error) *zerolog.Logger {
 	}
 
 	for {
-		wErr, ok := err.(*werr.WrappedError)
-		if ok {
-			aErr, aOk := wErr.Err.(*AsertoError)
-			if aOk {
-				setLogger(aErr.Ctx, &logger)
+		if ce, ok := err.(*ContextError); ok {
+			newLogger := extractLogger(ce.Ctx)
+			if newLogger != nil {
+				logger = newLogger
 			}
-			setLogger(wErr.Ctx, &logger)
-		}
-
-		aErr, ok := err.(*AsertoError)
-		if ok {
-			setLogger(aErr.Ctx, &logger)
-
 		}
 
 		err = errors.Unwrap(err)
@@ -341,27 +327,6 @@ func Logger(err error) *zerolog.Logger {
 	}
 
 	return logger
-}
-
-/**
- * setLogger sets the logger pointer to the logger stored in the provided context.
- * If the context is nil or the logger in the context is nil, the logger pointer remains unchanged.
- * If the logger in the context is the default context logger or has a disabled level, the logger pointer remains unchanged.
- *
- * @param ctx The context from which to retrieve the logger.
- * @param logger The pointer to the logger to be set.
- */
-func setLogger(ctx context.Context, logger **zerolog.Logger) {
-	if ctx == nil {
-		return
-	}
-
-	newLogger := zerolog.Ctx(ctx)
-	if newLogger == nil || newLogger == zerolog.DefaultContextLogger || newLogger.GetLevel() == zerolog.Disabled {
-		return
-	}
-
-	*logger = newLogger
 }
 
 func UnwrapAsertoError(err error) *AsertoError {
@@ -376,14 +341,6 @@ func UnwrapAsertoError(err error) *AsertoError {
 
 	// try to process Aserto error.
 	for {
-		wErr, ok := err.(*werr.WrappedError)
-		if ok {
-			aErr, aOk := wErr.Err.(*AsertoError)
-			if aOk {
-				return aErr
-			}
-		}
-
 		aErr, ok := err.(*AsertoError)
 		if ok {
 			return aErr
@@ -425,4 +382,16 @@ func Equals(err1, err2 error) bool {
 
 func CodeToAsertoError(code string) *AsertoError {
 	return asertoErrors[code]
+}
+
+func extractLogger(ctx context.Context) *zerolog.Logger {
+	if ctx == nil {
+		return nil
+	}
+	logger := zerolog.Ctx(ctx)
+	if logger == nil || logger == zerolog.DefaultContextLogger || logger.GetLevel() == zerolog.Disabled {
+		logger = nil
+	}
+
+	return logger
 }
