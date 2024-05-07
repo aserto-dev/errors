@@ -2,6 +2,8 @@ package errors
 
 import (
 	"context"
+
+	"github.com/pkg/errors"
 )
 
 // ContextError represents a standard error
@@ -16,6 +18,14 @@ func WrapWithContext(err error, ctx context.Context) *ContextError {
 		Err: err,
 		Ctx: ctx,
 	}
+}
+
+func WrapConext(err error, ctx context.Context, message string) *ContextError {
+	return WrapWithContext(errors.Wrap(err, message), ctx)
+}
+
+func WrapfConext(err error, ctx context.Context, format string, args ...interface{}) *ContextError {
+	return WrapWithContext(errors.Wrapf(err, format, args...), ctx)
 }
 
 func (ce *ContextError) Error() string {
