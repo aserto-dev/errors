@@ -2,7 +2,6 @@ package errors
 
 import (
 	"context"
-	"fmt"
 )
 
 // ContextError represents a standard error
@@ -20,7 +19,11 @@ func WrapWithContext(err error, ctx context.Context) *ContextError {
 }
 
 func (ce *ContextError) Error() string {
-	return fmt.Sprintf("%s", ce.Err)
+	return ce.Err.Error()
+}
+
+func (ce *ContextError) Cause() error {
+	return ce.Err
 }
 
 func (ce *ContextError) Unwrap() error {
