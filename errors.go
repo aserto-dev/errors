@@ -205,7 +205,6 @@ func (e *AsertoError) Time(key string, value time.Time) *AsertoError {
 func (e *AsertoError) FromReader(key string, value io.Reader) *AsertoError {
 	buf := &strings.Builder{}
 	_, err := io.Copy(buf, value)
-
 	if err != nil {
 		return e.Err(err)
 	}
@@ -253,7 +252,6 @@ func (e *AsertoError) GRPCStatus() *status.Status {
 		Metadata: e.Data(),
 		Domain:   e.Code,
 	})
-
 	if err != nil {
 		return status.New(codes.Internal, "internal failure setting up error details, please contact the administrator")
 	}
@@ -274,7 +272,7 @@ func (e *AsertoError) WithHTTPStatus(httpStatus int) *AsertoError {
 }
 
 func (e *AsertoError) Ctx(ctx context.Context) error {
-	return WrapWithContext(e, ctx)
+	return WithContext(e, ctx)
 }
 
 // Returns an Aserto error based on a given grpcStatus. The details that are not of type errdetails.ErrorInfo are dropped.
@@ -307,16 +305,16 @@ func FromGRPCStatus(grpcStatus status.Status) *AsertoError {
  */
 func Logger(err error) *zerolog.Logger {
 	var logger *zerolog.Logger
+	var ce *ContextError
 
 	if err == nil {
 		return logger
 	}
 
 	for {
-		if ce, ok := err.(*ContextError); ok {
-			newLogger := extractLogger(ce.Ctx)
-			if newLogger != nil {
-				logger = newLogger
+		if errors.As(err, &ce) {
+			if ctxLogger := extractLogger(ce.Ctx); ctxLogger != nil {
+				logger = ctxLogger
 			}
 		}
 
@@ -384,12 +382,16 @@ func CodeToAsertoError(code string) *AsertoError {
 	return asertoErrors[code]
 }
 
+/**
+ * Retrieve the logger associated with the context using zerolog.Ctx(ctx).
+ * If the retrieved logger is either the default context logger or has a disabled level, it returns nil.
+ */
 func extractLogger(ctx context.Context) *zerolog.Logger {
 	if ctx == nil {
 		return nil
 	}
 	logger := zerolog.Ctx(ctx)
-	if logger == nil || logger == zerolog.DefaultContextLogger || logger.GetLevel() == zerolog.Disabled {
+	if logger == zerolog.DefaultContextLogger || logger.GetLevel() == zerolog.Disabled {
 		logger = nil
 	}
 

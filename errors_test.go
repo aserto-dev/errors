@@ -101,7 +101,6 @@ func TestFromGRPCStatus(t *testing.T) {
 		Metadata: initialErr.Data(),
 		Domain:   initialErr.Code,
 	})
-
 	if err != nil {
 		assert.Fail(err.Error())
 	}
@@ -129,7 +128,6 @@ func TestEquals(t *testing.T) {
 	err2 := ErrAlreadyExists.Msgf("error 2").Str("key2", "val2").Err(errors.New("zoom"))
 
 	assert.True(cerr.Equals(err1, err2))
-
 }
 
 func TestEqualsNil(t *testing.T) {
@@ -217,7 +215,7 @@ func TestLoggerWithWrappedNilError(t *testing.T) {
 	var err error
 	ctx := context.Background()
 
-	logger := cerr.Logger(cerr.WrapWithContext(err, ctx))
+	logger := cerr.Logger(cerr.WithContext(err, ctx))
 	assert.Nil(logger)
 }
 
@@ -225,7 +223,7 @@ func TestLoggerWithWrappedErrorsWithEmptyContext(t *testing.T) {
 	assert := require.New(t)
 
 	ctx := context.Background()
-	err := cerr.WrapWithContext(cerr.NewAsertoError("E00001", codes.Internal, http.StatusInternalServerError, "internal error"), ctx)
+	err := cerr.WithContext(cerr.NewAsertoError("E00001", codes.Internal, http.StatusInternalServerError, "internal error"), ctx)
 	wrappedErr := errors.Wrap(err, "wrapped error")
 
 	logger := cerr.Logger(wrappedErr)
@@ -238,7 +236,7 @@ func TestLoggerWithWrappedErrorsWithLoggerContext(t *testing.T) {
 
 	ctx := context.Background()
 	ctx = initialLogger.WithContext(ctx)
-	err := cerr.WrapWithContext(cerr.NewAsertoError("E00001", codes.Internal, http.StatusInternalServerError, "internal error"), ctx)
+	err := cerr.WithContext(cerr.NewAsertoError("E00001", codes.Internal, http.StatusInternalServerError, "internal error"), ctx)
 	wrappedErr := errors.Wrap(err, "wrapped error")
 
 	logger := cerr.Logger(wrappedErr)
@@ -252,7 +250,7 @@ func TestLoggerWithWrappedMultipleWithoutErrorsWithContext(t *testing.T) {
 
 	ctx := context.Background()
 	ctx = initialLogger.WithContext(ctx)
-	err := cerr.WrapWithContext(cerr.NewAsertoError("E00001", codes.Internal, http.StatusInternalServerError, "internal error"), ctx)
+	err := cerr.WithContext(cerr.NewAsertoError("E00001", codes.Internal, http.StatusInternalServerError, "internal error"), ctx)
 	errWithoutCtx := cerr.NewAsertoError("E00002", codes.Internal, http.StatusInternalServerError, "internal error")
 	wrappedErr := errWithoutCtx.Err(errors.Wrap(err, "wrapped error"))
 
@@ -267,7 +265,7 @@ func TestLoggerWithWrappedMultipleErrorsWithContext(t *testing.T) {
 
 	ctx := context.Background()
 	ctx = initialLogger.WithContext(ctx)
-	err := cerr.WrapWithContext(cerr.NewAsertoError("E00001", codes.Internal, http.StatusInternalServerError, "internal error"), ctx)
+	err := cerr.WithContext(cerr.NewAsertoError("E00001", codes.Internal, http.StatusInternalServerError, "internal error"), ctx)
 	errWithoutCtx := cerr.NewAsertoError("E00002", codes.Internal, http.StatusInternalServerError, "internal error")
 	wrappedErr := errors.Wrap(errWithoutCtx.Err(err), "wrapped error")
 
@@ -281,8 +279,8 @@ func TestLoggerWithWrappedMultipleErrorsWithMultipleContexts(t *testing.T) {
 	initialLogger := zerolog.New(os.Stderr)
 	ctx1 := context.Background()
 	ctx2 := initialLogger.WithContext(ctx1)
-	err := cerr.WrapWithContext(cerr.NewAsertoError("E00001", codes.Internal, http.StatusInternalServerError, "internal error"), ctx1)
-	wrappedErr := cerr.WrapWithContext(cerr.WrapWithContext(err, ctx2), ctx1)
+	err := cerr.WithContext(cerr.NewAsertoError("E00001", codes.Internal, http.StatusInternalServerError, "internal error"), ctx1)
+	wrappedErr := cerr.WithContext(cerr.WithContext(err, ctx2), ctx1)
 
 	logger := cerr.Logger(wrappedErr)
 	ctx1Logger := zerolog.Ctx(ctx1)
@@ -298,8 +296,8 @@ func TestLoggerWithWrappedMultipleErrorsWithMultipleContextsOuter(t *testing.T) 
 	initialLogger := zerolog.New(os.Stderr)
 	ctx1 := context.Background()
 	ctx2 := initialLogger.WithContext(ctx1)
-	err := cerr.WrapWithContext(cerr.NewAsertoError("E00001", codes.Internal, http.StatusInternalServerError, "internal error"), ctx1)
-	err2 := cerr.WrapWithContext(cerr.NewAsertoError("E00002", codes.Internal, http.StatusInternalServerError, "internal error"), ctx2)
+	err := cerr.WithContext(cerr.NewAsertoError("E00001", codes.Internal, http.StatusInternalServerError, "internal error"), ctx1)
+	err2 := cerr.WithContext(cerr.NewAsertoError("E00002", codes.Internal, http.StatusInternalServerError, "internal error"), ctx2)
 	wrappedErr := errors.Wrap(errors.Wrap(err2, err.Error()), "wrapped error")
 
 	logger := cerr.Logger(wrappedErr)

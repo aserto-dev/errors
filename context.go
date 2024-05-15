@@ -13,19 +13,19 @@ type ContextError struct {
 	Ctx context.Context
 }
 
-func WrapWithContext(err error, ctx context.Context) *ContextError {
+func WithContext(err error, ctx context.Context) *ContextError {
 	return &ContextError{
 		Err: err,
 		Ctx: ctx,
 	}
 }
 
-func WrapConext(err error, ctx context.Context, message string) *ContextError {
-	return WrapWithContext(errors.Wrap(err, message), ctx)
+func WrapContext(err error, ctx context.Context, message string) *ContextError {
+	return WithContext(errors.Wrap(err, message), ctx)
 }
 
-func WrapfConext(err error, ctx context.Context, format string, args ...interface{}) *ContextError {
-	return WrapWithContext(errors.Wrapf(err, format, args...), ctx)
+func WrapfContext(err error, ctx context.Context, format string, args ...interface{}) *ContextError {
+	return WithContext(errors.Wrapf(err, format, args...), ctx)
 }
 
 func (ce *ContextError) Error() string {
@@ -33,7 +33,7 @@ func (ce *ContextError) Error() string {
 }
 
 func (ce *ContextError) Cause() error {
-	return ce.Err
+	return errors.Cause(ce.Unwrap())
 }
 
 func (ce *ContextError) Unwrap() error {
