@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -204,7 +205,6 @@ func (e *AsertoError) Time(key string, value time.Time) *AsertoError {
 func (e *AsertoError) FromReader(key string, value io.Reader) *AsertoError {
 	buf := &strings.Builder{}
 	_, err := io.Copy(buf, value)
-
 	if err != nil {
 		return e.Err(err)
 	}
@@ -252,7 +252,6 @@ func (e *AsertoError) GRPCStatus() *status.Status {
 		Metadata: e.Data(),
 		Domain:   e.Code,
 	})
-
 	if err != nil {
 		return status.New(codes.Internal, "internal failure setting up error details, please contact the administrator")
 	}
@@ -270,6 +269,10 @@ func (e *AsertoError) WithHTTPStatus(httpStatus int) *AsertoError {
 	c := e.Copy()
 	c.HTTPCode = httpStatus
 	return c
+}
+
+func (e *AsertoError) Ctx(ctx context.Context) error {
+	return WithContext(e, ctx)
 }
 
 // Returns an Aserto error based on a given grpcStatus. The details that are not of type errdetails.ErrorInfo are dropped.
@@ -295,6 +298,33 @@ func FromGRPCStatus(grpcStatus status.Status) *AsertoError {
 	}
 
 	return result
+}
+
+/**
+ * Retrieves the most inner logger associated with an error.
+ */
+func Logger(err error) *zerolog.Logger {
+	var logger *zerolog.Logger
+	var ce *ContextError
+
+	if err == nil {
+		return logger
+	}
+
+	for {
+		if errors.As(err, &ce) {
+			if ctxLogger := extractLogger(ce.Ctx); ctxLogger != nil {
+				logger = ctxLogger
+			}
+		}
+
+		err = errors.Unwrap(err)
+		if err == nil {
+			break
+		}
+	}
+
+	return logger
 }
 
 func UnwrapAsertoError(err error) *AsertoError {
@@ -350,4 +380,20 @@ func Equals(err1, err2 error) bool {
 
 func CodeToAsertoError(code string) *AsertoError {
 	return asertoErrors[code]
+}
+
+/**
+ * Retrieve the logger associated with the context using zerolog.Ctx(ctx).
+ * If the retrieved logger is either the default context logger or has a disabled level, it returns nil.
+ */
+func extractLogger(ctx context.Context) *zerolog.Logger {
+	if ctx == nil {
+		return nil
+	}
+	logger := zerolog.Ctx(ctx)
+	if logger == zerolog.DefaultContextLogger || logger.GetLevel() == zerolog.Disabled {
+		logger = nil
+	}
+
+	return logger
 }
