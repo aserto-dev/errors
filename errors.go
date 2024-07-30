@@ -136,10 +136,10 @@ func (e *AsertoError) Msg(message string) *AsertoError {
 	c := e.Copy()
 
 	if message != "" {
-		if existingMsg, ok := c.data[MessageKey]; ok {
-			c.data[MessageKey] = existingMsg + colon + message
+		if c.Message != "" {
+			c.Message = c.Message + colon + message
 		} else {
-			c.data[MessageKey] = message
+			c.Message = message
 		}
 	}
 
@@ -151,11 +151,14 @@ func (e *AsertoError) Msgf(message string, args ...interface{}) *AsertoError {
 
 	message = fmt.Sprintf(message, args...)
 
-	if existingMsg, ok := c.data[MessageKey]; ok {
-		c.data[MessageKey] = existingMsg + colon + message
-	} else {
-		c.data[MessageKey] = message
+	if message != "" {
+		if c.Message != "" {
+			c.Message = c.Message + colon + message
+		} else {
+			c.Message = message
+		}
 	}
+
 	return c
 }
 
