@@ -49,12 +49,12 @@ func TestWithEmptyMsg(t *testing.T) {
 	err := ErrNotFound.Msg("")
 
 	fields := err.Fields()
-	assert.Nil(fields["msg"])
+	assert.Nil(fields[cerr.MessageKey])
 
 	err = ErrNotFound.Msg("bla")
 
 	fields = err.Fields()
-	assert.NotNil(fields["msg"])
+	assert.NotNil(fields[cerr.MessageKey])
 }
 
 func TestError(t *testing.T) {
