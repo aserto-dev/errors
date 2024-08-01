@@ -88,7 +88,7 @@ func (e *AsertoError) Error() string {
 	}
 	if len(e.data) > 0 {
 		for k, v := range e.data {
-			if k == "msg" {
+			if k == MessageKey {
 				if innerMessage != "" {
 					innerMessage += colon
 				}
