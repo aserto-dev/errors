@@ -194,7 +194,8 @@ func TestWithGrpcError(t *testing.T) {
 
 func TestWithHttpError(t *testing.T) {
 	assert := require.New(t)
-	aerr := cerr.NewAsertoError("E000001", codes.Unavailable, http.StatusServiceUnavailable, "failed to setup").WithHTTPStatus(http.StatusNotAcceptable)
+	aerr := cerr.NewAsertoError("E000001", codes.Unavailable, http.StatusServiceUnavailable, "failed to setup").
+		WithHTTPStatus(http.StatusNotAcceptable)
 
 	unAerr := cerr.UnwrapAsertoError(aerr)
 	assert.Equal(http.StatusNotAcceptable, unAerr.HTTPCode)

@@ -10,7 +10,7 @@ import (
 // that can also encapsulate a context.
 type ContextError struct {
 	Err error
-	Ctx context.Context
+	Ctx context.Context //nolint:containedctx
 }
 
 func WithContext(err error, ctx context.Context) *ContextError {
