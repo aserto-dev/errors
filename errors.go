@@ -24,7 +24,7 @@ const (
 var (
 	ErrUnknown = NewAsertoError("E00000", codes.Internal, http.StatusInternalServerError, "an unknown error has occurred")
 
-	asertoErrors = make(map[string]*AsertoError)
+	asertoErrors = make(map[string]*AsertoError) //nolint:gochecknoglobals
 )
 
 func NewAsertoError(code string, statusCode codes.Code, httpCode int, msg string) *AsertoError {
@@ -51,8 +51,8 @@ func (e *AsertoError) Data() map[string]string {
 // SameAs returns true if the provided error is an AsertoError
 // and has the same error code.
 func (e *AsertoError) SameAs(err error) bool {
-	aErr, ok := err.(*AsertoError)
-	if err == nil || !ok {
+	var aErr *AsertoError
+	if ok := errors.As(err, &aErr); err == nil || !ok {
 		return false
 	}
 
@@ -121,7 +121,8 @@ func (e *AsertoError) Err(err error) *AsertoError {
 
 	c.errs = append(c.errs, err)
 
-	if aErr, ok := err.(*AsertoError); ok {
+	var aErr *AsertoError
+	if ok := errors.As(err, &aErr); ok {
 		for k, v := range aErr.data {
 			if _, ok := c.data[k]; !ok {
 				c.data[k] = v
@@ -167,7 +168,7 @@ func (e *AsertoError) Str(key, value string) *AsertoError {
 
 func (e *AsertoError) Int(key string, value int) *AsertoError {
 	c := e.Copy()
-	c.data[key] = fmt.Sprintf("%d", value)
+	c.data[key] = strconv.Itoa(value)
 	return c
 }
 
@@ -185,7 +186,7 @@ func (e *AsertoError) Int64(key string, value int64) *AsertoError {
 
 func (e *AsertoError) Bool(key string, value bool) *AsertoError {
 	c := e.Copy()
-	c.data[key] = fmt.Sprintf("%t", value)
+	c.data[key] = strconv.FormatBool(value)
 
 	return c
 }
@@ -339,8 +340,8 @@ func UnwrapAsertoError(err error) *AsertoError {
 
 	// try to process Aserto error.
 	for {
-		aErr, ok := err.(*AsertoError)
-		if ok {
+		var aErr *AsertoError
+		if ok := errors.As(err, &aErr); ok {
 			return aErr
 		}
 

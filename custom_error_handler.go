@@ -15,7 +15,14 @@ const (
 	HTTPStatusErrorMetadata = "aserto-http-statuscode"
 )
 
-func CustomErrorHandler(ctx context.Context, gtw *runtime.ServeMux, runtimeMarshaler runtime.Marshaler, httpResponseWriter http.ResponseWriter, httpRequest *http.Request, err error) {
+func CustomErrorHandler(
+	ctx context.Context,
+	gtw *runtime.ServeMux,
+	runtimeMarshaler runtime.Marshaler,
+	httpResponseWriter http.ResponseWriter,
+	httpRequest *http.Request,
+	err error,
+) {
 	if err == nil {
 		runtime.DefaultHTTPErrorHandler(ctx, gtw, runtimeMarshaler, httpResponseWriter, httpRequest, err)
 	}
