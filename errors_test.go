@@ -68,10 +68,10 @@ func TestError(t *testing.T) {
 	err6 := ErrNotFound.Err(errors.New("boom")).Err(errors.New("pow"))
 	err7 := ErrNotFound.Msg("bla")
 
-	assert.Equal(err.Error(), "E10001 not found: boom: bla")
+	assert.Equal(err.Error(), "E10001 not found: bla: boom")
 	assert.Equal(err2.Error(), "E10001 not found: bla: ala")
-	assert.Equal(err3.Error(), "E10001 not found: boom: bla: ala")
-	assert.Equal(err4.Error(), "E10001 not found: boom: pow: bla: ala")
+	assert.Equal(err3.Error(), "E10001 not found: bla: ala: boom")
+	assert.Equal(err4.Error(), "E10001 not found: bla: ala: boom: pow")
 	assert.Equal(err5.Error(), "E10001 not found: boom")
 	assert.Equal(err6.Error(), "E10001 not found: boom: pow")
 	assert.Equal(err7.Error(), "E10001 not found: bla")

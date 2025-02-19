@@ -36,6 +36,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: ${{ env.GO_LANGCI_LINT_VERSION }}
+          verify: false  # `golangci-lint config verify` checks against the latest schema instead of its own version.
           args: --timeout=30m
       -
         name: Test Setup
