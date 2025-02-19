@@ -77,15 +77,17 @@ func (e *AsertoError) Copy() *AsertoError {
 }
 
 func (e *AsertoError) Error() string {
-	innerMessage := ""
+	errsMessage := ""
 
 	if len(e.errs) > 0 {
-		innerMessage = e.errs[0].Error()
+		errsMessage = e.errs[0].Error()
 
 		for _, err := range e.errs[1:] {
-			innerMessage = innerMessage + colon + err.Error()
+			errsMessage = errsMessage + colon + err.Error()
 		}
 	}
+
+	innerMessage := errsMessage
 	if len(e.data) > 0 {
 		for k, v := range e.data {
 			if k == "msg" {
