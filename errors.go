@@ -90,9 +90,9 @@ func (e *AsertoError) Error() string {
 		for k, v := range e.data {
 			if k == "msg" {
 				if innerMessage != "" {
-					innerMessage += colon
+					innerMessage = colon + innerMessage
 				}
-				innerMessage += v
+				innerMessage = v + innerMessage
 			}
 		}
 	}
