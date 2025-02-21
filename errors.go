@@ -119,18 +119,9 @@ func (e *AsertoError) Err(err error) *AsertoError {
 	if err == nil {
 		return e
 	}
+
 	c := e.Copy()
-
 	c.errs = append(c.errs, err)
-
-	var aErr *AsertoError
-	if ok := errors.As(err, &aErr); ok {
-		for k, v := range aErr.data {
-			if _, ok := c.data[k]; !ok {
-				c.data[k] = v
-			}
-		}
-	}
 
 	return c
 }
