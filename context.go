@@ -24,7 +24,7 @@ func WrapContext(err error, ctx context.Context, message string) *ContextError {
 	return WithContext(errors.Wrap(err, message), ctx)
 }
 
-func WrapfContext(err error, ctx context.Context, format string, args ...interface{}) *ContextError {
+func WrapfContext(err error, ctx context.Context, format string, args ...any) *ContextError {
 	return WithContext(errors.Wrapf(err, format, args...), ctx)
 }
 
