@@ -17,7 +17,7 @@ on:
 env:
   PRE_RELEASE: ${{ github.ref == 'refs/heads/main' && 'development' || '' }}
   GO_VERSION: "1.23"
-  GO_LANGCI_LINT_VERSION: "v1.61.0"
+  GO_LANGCI_LINT_VERSION: v2.0.2
   GO_TESTSUM_VERSION: "1.11.0"
 
 jobs:
@@ -33,7 +33,7 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       -
         name: Lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v7
         with:
           version: ${{ env.GO_LANGCI_LINT_VERSION }}
           verify: false  # `golangci-lint config verify` checks against the latest schema instead of its own version.

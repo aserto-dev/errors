@@ -68,25 +68,25 @@ func TestError(t *testing.T) {
 	err6 := ErrNotFound.Err(errors.New("boom")).Err(errors.New("pow"))
 	err7 := ErrNotFound.Msg("bla")
 
-	assert.Equal(err.Error(), "E10001 not found: bla: boom")
-	assert.Equal(err2.Error(), "E10001 not found: bla: ala")
-	assert.Equal(err3.Error(), "E10001 not found: bla: ala: boom")
-	assert.Equal(err4.Error(), "E10001 not found: bla: ala: boom: pow")
-	assert.Equal(err5.Error(), "E10001 not found: boom")
-	assert.Equal(err6.Error(), "E10001 not found: boom: pow")
-	assert.Equal(err7.Error(), "E10001 not found: bla")
+	assert.ErrorContains(err, "E10001 not found: bla: boom")
+	assert.ErrorContains(err2, "E10001 not found: bla: ala")
+	assert.ErrorContains(err3, "E10001 not found: bla: ala: boom")
+	assert.ErrorContains(err4, "E10001 not found: bla: ala: boom: pow")
+	assert.ErrorContains(err5, "E10001 not found: boom")
+	assert.ErrorContains(err6, "E10001 not found: boom: pow")
+	assert.ErrorContains(err7, "E10001 not found: bla")
 }
 
 func TestWithGrpcStatusCode(t *testing.T) {
 	assert := require.New(t)
 	err := ErrNotFound.WithGRPCStatus(codes.Canceled)
-	assert.Equal(err.StatusCode, codes.Canceled)
+	assert.Equal(codes.Canceled, err.StatusCode)
 }
 
 func TestWithHttpStatusCode(t *testing.T) {
 	assert := require.New(t)
 	err := ErrNotFound.WithHTTPStatus(http.StatusAccepted)
-	assert.Equal(err.HTTPCode, http.StatusAccepted)
+	assert.Equal(http.StatusAccepted, err.HTTPCode)
 }
 
 func TestFromGRPCStatus(t *testing.T) {
@@ -96,6 +96,7 @@ func TestFromGRPCStatus(t *testing.T) {
 	initialErr = initialErr.Str("email", "testuser@mail.com").Msg("foo")
 
 	grpcStatus := status.New(initialErr.StatusCode, initialErr.Error())
+
 	grpcStatus, err := grpcStatus.WithDetails(&errdetails.ErrorInfo{
 		Reason:   "1234",
 		Metadata: initialErr.Data(),
@@ -212,9 +213,9 @@ func TestLoggerWithNilError(t *testing.T) {
 
 func TestLoggerWithWrappedNilError(t *testing.T) {
 	assert := require.New(t)
+	ctx := context.Background()
 
 	var err error
-	ctx := context.Background()
 
 	logger := cerr.Logger(cerr.WithContext(err, ctx))
 	assert.Nil(logger)

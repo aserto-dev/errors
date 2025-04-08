@@ -30,6 +30,7 @@ var (
 func NewAsertoError(code string, statusCode codes.Code, httpCode int, msg string) *AsertoError {
 	asertoError := &AsertoError{code, statusCode, msg, httpCode, map[string]string{}, nil}
 	asertoErrors[code] = asertoError
+
 	return asertoError
 }
 
@@ -88,19 +89,23 @@ func (e *AsertoError) Error() string {
 	}
 
 	innerMessage := errsMessage
+
 	if len(e.data) > 0 {
 		for k, v := range e.data {
 			if k == "msg" {
 				if innerMessage != "" {
 					innerMessage = colon + innerMessage
 				}
+
 				innerMessage = v + innerMessage
 			}
 		}
 	}
+
 	if innerMessage == "" {
 		return fmt.Sprintf("%s %s", e.Code, e.Message)
 	}
+
 	return fmt.Sprintf("%s %s: %s", e.Code, e.Message, innerMessage)
 }
 
@@ -150,30 +155,35 @@ func (e *AsertoError) Msgf(message string, args ...interface{}) *AsertoError {
 	} else {
 		c.data[MessageKey] = message
 	}
+
 	return c
 }
 
 func (e *AsertoError) Str(key, value string) *AsertoError {
 	c := e.Copy()
 	c.data[key] = value
+
 	return c
 }
 
 func (e *AsertoError) Int(key string, value int) *AsertoError {
 	c := e.Copy()
 	c.data[key] = strconv.Itoa(value)
+
 	return c
 }
 
 func (e *AsertoError) Int32(key string, value int32) *AsertoError {
 	c := e.Copy()
 	c.data[key] = strconv.FormatInt(int64(value), 10)
+
 	return c
 }
 
 func (e *AsertoError) Int64(key string, value int64) *AsertoError {
 	c := e.Copy()
 	c.data[key] = strconv.FormatInt(value, 10)
+
 	return c
 }
 
@@ -187,19 +197,21 @@ func (e *AsertoError) Bool(key string, value bool) *AsertoError {
 func (e *AsertoError) Duration(key string, value time.Duration) *AsertoError {
 	c := e.Copy()
 	c.data[key] = value.String()
+
 	return c
 }
 
 func (e *AsertoError) Time(key string, value time.Time) *AsertoError {
 	c := e.Copy()
 	c.data[key] = value.UTC().Format(time.RFC3339)
+
 	return c
 }
 
 func (e *AsertoError) FromReader(key string, value io.Reader) *AsertoError {
 	buf := &strings.Builder{}
-	_, err := io.Copy(buf, value)
-	if err != nil {
+
+	if _, err := io.Copy(buf, value); err != nil {
 		return e.Err(err)
 	}
 
@@ -212,6 +224,7 @@ func (e *AsertoError) FromReader(key string, value io.Reader) *AsertoError {
 func (e *AsertoError) Interface(key string, value interface{}) *AsertoError {
 	c := e.Copy()
 	c.data[key] = fmt.Sprintf("%+v", value)
+
 	return c
 }
 
@@ -242,6 +255,7 @@ func (e *AsertoError) MarshalZerologObject(event *zerolog.Event) {
 
 func (e *AsertoError) GRPCStatus() *status.Status {
 	errResult := status.New(e.StatusCode, e.Message)
+
 	errResult, err := errResult.WithDetails(&errdetails.ErrorInfo{
 		Metadata: e.Data(),
 		Domain:   e.Code,
@@ -256,12 +270,14 @@ func (e *AsertoError) GRPCStatus() *status.Status {
 func (e *AsertoError) WithGRPCStatus(grpcCode codes.Code) *AsertoError {
 	c := e.Copy()
 	c.StatusCode = grpcCode
+
 	return c
 }
 
 func (e *AsertoError) WithHTTPStatus(httpStatus int) *AsertoError {
 	c := e.Copy()
 	c.HTTPCode = httpStatus
+
 	return c
 }
 
@@ -280,12 +296,14 @@ func FromGRPCStatus(grpcStatus status.Status) *AsertoError {
 
 	for _, detail := range grpcStatus.Details() {
 		if t, ok := detail.(*errdetails.ErrorInfo); ok {
-			result = asertoErrors[t.Domain]
+			result = asertoErrors[t.GetDomain()]
 			if result == nil {
 				return nil
 			}
-			result.data = t.Metadata
+
+			result.data = t.GetMetadata()
 		}
+
 		if result != nil {
 			break
 		}
@@ -298,8 +316,10 @@ func FromGRPCStatus(grpcStatus status.Status) *AsertoError {
  * Retrieves the most inner logger associated with an error.
  */
 func Logger(err error) *zerolog.Logger {
-	var logger *zerolog.Logger
-	var ce *ContextError
+	var (
+		logger *zerolog.Logger
+		ce     *ContextError
+	)
 
 	if err == nil {
 		return logger
@@ -384,6 +404,7 @@ func extractLogger(ctx context.Context) *zerolog.Logger {
 	if ctx == nil {
 		return nil
 	}
+
 	logger := zerolog.Ctx(ctx)
 	if logger == zerolog.DefaultContextLogger || logger.GetLevel() == zerolog.Disabled {
 		logger = nil

@@ -34,7 +34,7 @@ func CustomErrorHandler(
 			continue
 		}
 
-		value, hasErrorMetadata := errInfo.Metadata[HTTPStatusErrorMetadata]
+		value, hasErrorMetadata := errInfo.GetMetadata()[HTTPStatusErrorMetadata]
 		if !hasErrorMetadata {
 			continue
 		}
@@ -48,6 +48,7 @@ func CustomErrorHandler(
 			httpStatusError.Err = err
 			httpStatusError.HTTPStatus = code
 			runtime.DefaultHTTPErrorHandler(ctx, gtw, runtimeMarshaler, httpResponseWriter, httpRequest, &httpStatusError)
+
 			return
 		}
 	}
