@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"strconv"
 	"strings"
@@ -109,8 +110,15 @@ func (e *AsertoError) Error() string {
 	return fmt.Sprintf("%s %s: %s", e.Code, e.Message, innerMessage)
 }
 
-func (e *AsertoError) Fields() map[string]interface{} {
-	result := make(map[string]interface{}, len(e.data))
+func (e *AsertoError) Fields() map[string]any {
+	result := make(map[string]any, len(e.data))
+
+	for _, err := range e.errs {
+		var aerr *AsertoError
+		if ok := errors.As(err, &aerr); ok {
+			maps.Copy(result, aerr.Fields())
+		}
+	}
 
 	for k, v := range e.data {
 		result[k] = v
@@ -145,7 +153,7 @@ func (e *AsertoError) Msg(message string) *AsertoError {
 	return c
 }
 
-func (e *AsertoError) Msgf(message string, args ...interface{}) *AsertoError {
+func (e *AsertoError) Msgf(message string, args ...any) *AsertoError {
 	c := e.Copy()
 
 	message = fmt.Sprintf(message, args...)
@@ -221,7 +229,7 @@ func (e *AsertoError) FromReader(key string, value io.Reader) *AsertoError {
 	return c
 }
 
-func (e *AsertoError) Interface(key string, value interface{}) *AsertoError {
+func (e *AsertoError) Interface(key string, value any) *AsertoError {
 	c := e.Copy()
 	c.data[key] = fmt.Sprintf("%+v", value)
 
