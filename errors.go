@@ -28,13 +28,6 @@ var (
 	asertoErrors = make(map[string]*AsertoError) //nolint:gochecknoglobals
 )
 
-func NewAsertoError(code string, statusCode codes.Code, httpCode int, msg string) *AsertoError {
-	asertoError := &AsertoError{code, statusCode, msg, httpCode, map[string]string{}, nil}
-	asertoErrors[code] = asertoError
-
-	return asertoError
-}
-
 // AsertoError represents a well known error
 // coming from an Aserto service.
 type AsertoError struct {
@@ -44,6 +37,13 @@ type AsertoError struct {
 	HTTPCode   int
 	data       map[string]string
 	errs       []error
+}
+
+func NewAsertoError(code string, statusCode codes.Code, httpCode int, msg string) *AsertoError {
+	asertoError := &AsertoError{code, statusCode, msg, httpCode, map[string]string{}, nil}
+	asertoErrors[code] = asertoError
+
+	return asertoError
 }
 
 func (e *AsertoError) Data() map[string]string {
@@ -64,9 +64,7 @@ func (e *AsertoError) SameAs(err error) bool {
 func (e *AsertoError) Copy() *AsertoError {
 	dataCopy := make(map[string]string, len(e.data))
 
-	for k, v := range e.data {
-		dataCopy[k] = v
-	}
+	maps.Copy(dataCopy, e.data)
 
 	return &AsertoError{
 		Code:       e.Code,
@@ -127,7 +125,7 @@ func (e *AsertoError) Fields() map[string]any {
 	return result
 }
 
-// Associates err with the AsertoError.
+// Err associates err with the AsertoError.
 func (e *AsertoError) Err(err error) *AsertoError {
 	if err == nil {
 		return e
@@ -293,7 +291,7 @@ func (e *AsertoError) Ctx(ctx context.Context) error {
 	return WithContext(e, ctx)
 }
 
-// Returns an Aserto error based on a given grpcStatus. The details that are not of type errdetails.ErrorInfo are dropped.
+// FromGRPCStatus returns an Aserto error based on a given grpcStatus. The details that are not of type errdetails.ErrorInfo are dropped.
 // and if there are details from multiple errors, the aserto error will be constructed based on the first one.
 func FromGRPCStatus(grpcStatus status.Status) *AsertoError {
 	var result *AsertoError
@@ -320,9 +318,7 @@ func FromGRPCStatus(grpcStatus status.Status) *AsertoError {
 	return result
 }
 
-/**
- * Retrieves the most inner logger associated with an error.
- */
+// Logger retrieves the most inner logger associated with an error.
 func Logger(err error) *zerolog.Logger {
 	var (
 		logger *zerolog.Logger
@@ -384,7 +380,7 @@ func UnwrapAsertoError(err error) *AsertoError {
 	return nil
 }
 
-// Returns true if the given errors are Aserto errors with the same code or both of them are nil.
+// Equals returns true if the given errors are Aserto errors with the same code or both of them are nil.
 func Equals(err1, err2 error) bool {
 	asertoErr1 := UnwrapAsertoError(err1)
 	asertoErr2 := UnwrapAsertoError(err2)
