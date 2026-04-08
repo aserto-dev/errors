@@ -207,6 +207,7 @@ func TestLoggerWithNilError(t *testing.T) {
 	assert := require.New(t)
 
 	var err error
+
 	logger := cerr.Logger(err)
 	assert.Nil(logger)
 }

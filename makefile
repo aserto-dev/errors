@@ -11,13 +11,15 @@ GOARCH             := $(shell go env GOARCH)
 GOPRIVATE          := "github.com/aserto-dev"
 DOCKER_BUILDKIT    := 1
 
-EXT_DIR            := ./.ext
+EXT_DIR            := ${PWD}/.ext
 EXT_BIN_DIR        := ${EXT_DIR}/bin
 EXT_TMP_DIR        := ${EXT_DIR}/tmp
 
-SVU_VER            := 3.1.0
-GOTESTSUM_VER      := 1.11.0
-GOLANGCI-LINT_VER  := 2.0.2
+GO_VER             := 1.26
+SVU_VER            := 3.3.0
+GOTESTSUM_VER      := 1.13.0
+GOLANGCI-LINT_VER  := 2.11.4
+GORELEASER_VER     := 2.14.1
 
 RELEASE_TAG		:= $$(${EXT_BIN_DIR}/svu current)
 

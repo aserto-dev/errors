@@ -45,6 +45,7 @@ func CustomErrorHandler(
 			logger.Error().Err(conversionErr).Msg("Failed to detect http status code associated with this AsertoError")
 		} else {
 			var httpStatusError runtime.HTTPStatusError
+
 			httpStatusError.Err = err
 			httpStatusError.HTTPStatus = code
 			runtime.DefaultHTTPErrorHandler(ctx, gtw, runtimeMarshaler, httpResponseWriter, httpRequest, &httpStatusError)
