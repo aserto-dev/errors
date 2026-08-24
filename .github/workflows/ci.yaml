@@ -16,7 +16,6 @@ on:
       - release-*
 env:
   PRE_RELEASE: ${{ github.ref == 'refs/heads/main' && 'development' || '' }}
-  GO_VER: "1.26"
   GO_LANGCI_LINT_VER: "v2.13.1"
 
 jobs:
