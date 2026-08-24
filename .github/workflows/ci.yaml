@@ -41,17 +41,11 @@ jobs:
         uses: golangci/golangci-lint-action@v9
         with:
           version: ${{ env.GO_LANGCI_LINT_VER }}
-          verify: false  # `golangci-lint config verify` checks against the latest schema instead of its own version.
           args: --timeout=30m
-      -
-        name: Test Setup
-        uses: gertd/action-gotestsum@v3.0.0
-        with:
-          gotestsum_version: ${{ env.GO_TESTSUM_VER }}
       -
         name: Test
         run: |
-          gotestsum --format short-verbose -- -count=1 -parallel=1 -v -timeout=240s -coverprofile=cover.out -coverpkg=./... ./...
+          .ext/bin/gotestsum --format short-verbose -- -count=1 -parallel=1 -v -timeout=240s -coverprofile=cover.out -coverpkg=./... ./...
       -
         name: Upload code coverage
         uses: shogo82148/actions-goveralls@v1
