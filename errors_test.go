@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"os"
+	"strconv"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -21,8 +22,8 @@ var (
 	ErrAlreadyExists = newErr("E10002", codes.AlreadyExists, http.StatusConflict, "already exists")
 )
 
-func newErr(code string, statusCode codes.Code, httpCode int, msg string) *cerr.AsertoError {
-	return cerr.NewAsertoError(code, statusCode, httpCode, msg)
+func newErr(code string, grpcCode codes.Code, httpCode int, msg string) *cerr.AsertoError {
+	return cerr.NewAsertoError(code, grpcCode, httpCode, msg)
 }
 
 func TestDoubleCerr(t *testing.T) {
@@ -63,6 +64,7 @@ func TestError(t *testing.T) {
 	err := ErrNotFound.Msg("bla").Err(errors.New("boom"))
 	err2 := ErrNotFound.Msg("bla").Msg("ala")
 	err3 := ErrNotFound.Err(errors.New("boom")).Msg("bla").Msg("ala")
+	// Err replaces rather than accumulates, so chaining Err twice keeps only the last one.
 	err4 := ErrNotFound.Err(errors.New("boom")).Err(errors.New("pow")).Msg("bla").Msg("ala")
 	err5 := ErrNotFound.Err(errors.New("boom"))
 	err6 := ErrNotFound.Err(errors.New("boom")).Err(errors.New("pow"))
@@ -71,22 +73,10 @@ func TestError(t *testing.T) {
 	assert.ErrorContains(err, "E10001 not found: bla: boom")
 	assert.ErrorContains(err2, "E10001 not found: bla: ala")
 	assert.ErrorContains(err3, "E10001 not found: bla: ala: boom")
-	assert.ErrorContains(err4, "E10001 not found: bla: ala: boom: pow")
+	assert.ErrorContains(err4, "E10001 not found: bla: ala: pow")
 	assert.ErrorContains(err5, "E10001 not found: boom")
-	assert.ErrorContains(err6, "E10001 not found: boom: pow")
+	assert.ErrorContains(err6, "E10001 not found: pow")
 	assert.ErrorContains(err7, "E10001 not found: bla")
-}
-
-func TestWithGrpcStatusCode(t *testing.T) {
-	assert := require.New(t)
-	err := ErrNotFound.WithGRPCStatus(codes.Canceled)
-	assert.Equal(codes.Canceled, err.StatusCode)
-}
-
-func TestWithHttpStatusCode(t *testing.T) {
-	assert := require.New(t)
-	err := ErrNotFound.WithHTTPStatus(http.StatusAccepted)
-	assert.Equal(http.StatusAccepted, err.HTTPCode)
 }
 
 func TestFromGRPCStatus(t *testing.T) {
@@ -95,7 +85,7 @@ func TestFromGRPCStatus(t *testing.T) {
 	initialErr := ErrNotFound
 	initialErr = initialErr.Str("email", "testuser@mail.com").Msg("foo")
 
-	grpcStatus := status.New(initialErr.StatusCode, initialErr.Error())
+	grpcStatus := status.New(initialErr.GRPCCode, initialErr.Error())
 
 	grpcStatus, err := grpcStatus.WithDetails(&errdetails.ErrorInfo{
 		Reason:   "1234",
@@ -108,10 +98,29 @@ func TestFromGRPCStatus(t *testing.T) {
 
 	transformedErr := cerr.FromGRPCStatus(*grpcStatus)
 
-	assert.True(initialErr.SameAs(transformedErr))
-
+	assert.Equal(initialErr.Code, transformedErr.Code)
 	assert.Equal(initialErr.Error(), transformedErr.Error())
 	assert.Equal(initialErr.Message, transformedErr.Message)
+}
+
+// FromGRPCStatus must not mutate the registered singleton it looks up.
+func TestFromGRPCStatusDoesNotMutateSingleton(t *testing.T) {
+	assert := require.New(t)
+
+	before := ErrNotFound.Data()
+
+	e := ErrNotFound.Str("email", "testuser@mail.com")
+	grpcStatus := status.New(e.GRPCCode, e.Error())
+	grpcStatus, err := grpcStatus.WithDetails(&errdetails.ErrorInfo{
+		Metadata: e.Data(),
+		Domain:   e.Code,
+		Reason:   "",
+	})
+	assert.NoError(err)
+
+	_ = cerr.FromGRPCStatus(*grpcStatus)
+
+	assert.Equal(before, ErrNotFound.Data())
 }
 
 func TestUnwrapNilErr(t *testing.T) {
@@ -122,58 +131,13 @@ func TestUnwrapNilErr(t *testing.T) {
 	assert.Nil(err)
 }
 
-func TestEquals(t *testing.T) {
-	assert := require.New(t)
-
-	err1 := ErrAlreadyExists.Msgf("error 1").Str("key1", "val1").Err(errors.New("boom"))
-	err2 := ErrAlreadyExists.Msgf("error 2").Str("key2", "val2").Err(errors.New("zoom"))
-
-	assert.True(cerr.Equals(err1, err2))
-}
-
-func TestEqualsNil(t *testing.T) {
-	assert := require.New(t)
-
-	assert.True(cerr.Equals(nil, nil))
-}
-
-func TestEqualsOneNil(t *testing.T) {
-	assert := require.New(t)
-
-	assert.False(cerr.Equals(ErrNotFound, nil))
-}
-
-func TestEqualsNormalErrorOneNil(t *testing.T) {
-	assert := require.New(t)
-
-	assert.False(cerr.Equals(errors.New("boom"), nil))
-}
-
-func TestEqualsErrCerr(t *testing.T) {
-	assert := require.New(t)
-
-	assert.False(cerr.Equals(errors.New("boom"), ErrNotFound))
-}
-
-func TestEqualsFalse(t *testing.T) {
-	assert := require.New(t)
-
-	assert.False(cerr.Equals(ErrAlreadyExists, ErrNotFound))
-}
-
-func TestEqualsNormalErrors(t *testing.T) {
-	assert := require.New(t)
-
-	assert.False(cerr.Equals(errors.New("boom1"), errors.New("boom2")))
-}
-
 func TestCodeToAsertoError(t *testing.T) {
 	assert := require.New(t)
 
 	asertoErr := cerr.CodeToAsertoError("E10001")
 
 	assert.NotNil(asertoErr)
-	assert.True(cerr.Equals(asertoErr, ErrNotFound))
+	assert.Equal(ErrNotFound.Code, asertoErr.Code)
 }
 
 func TestCodeToAsertoErrorInvalidCode(t *testing.T) {
@@ -186,20 +150,21 @@ func TestCodeToAsertoErrorInvalidCode(t *testing.T) {
 
 func TestWithGrpcError(t *testing.T) {
 	assert := require.New(t)
-	aerr := cerr.NewAsertoError("E000001", codes.Unavailable, http.StatusServiceUnavailable, "failed to setup").WithGRPCStatus(codes.Aborted)
+	aerr := cerr.NewAsertoError("E000001", codes.Aborted, http.StatusServiceUnavailable, "failed to setup")
 	berr := errors.Wrap(aerr, "new err")
 
 	unAerr := cerr.UnwrapAsertoError(berr)
 	assert.Equal(codes.Aborted, unAerr.GRPCStatus().Code())
 }
 
-func TestWithHttpError(t *testing.T) {
+func TestErrorInfoIncludesHTTPStatus(t *testing.T) {
 	assert := require.New(t)
-	aerr := cerr.NewAsertoError("E000001", codes.Unavailable, http.StatusServiceUnavailable, "failed to setup").
-		WithHTTPStatus(http.StatusNotAcceptable)
+	aerr := cerr.NewAsertoError("E000003", codes.Unavailable, http.StatusNotAcceptable, "failed to setup")
 
-	unAerr := cerr.UnwrapAsertoError(aerr)
-	assert.Equal(http.StatusNotAcceptable, unAerr.HTTPCode)
+	info := aerr.ErrorInfo("req-1")
+	assert.Equal("req-1", info.GetReason())
+	assert.Equal("E000003", info.GetDomain())
+	assert.Equal(strconv.Itoa(http.StatusNotAcceptable), info.GetMetadata()[cerr.HTTPStatusErrorMetadata])
 }
 
 // returns nil logger if error is nil.
