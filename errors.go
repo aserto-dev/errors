@@ -43,6 +43,7 @@ func NewAsertoError(code string, grpcCode codes.Code, httpCode int, msg string) 
 		HTTPCode: httpCode,
 		Message:  msg,
 		data:     map[string]string{},
+		wrapped:  nil,
 	}
 	asertoErrors[code] = asertoError
 

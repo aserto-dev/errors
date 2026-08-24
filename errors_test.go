@@ -114,6 +114,7 @@ func TestFromGRPCStatusDoesNotMutateSingleton(t *testing.T) {
 	grpcStatus, err := grpcStatus.WithDetails(&errdetails.ErrorInfo{
 		Metadata: e.Data(),
 		Domain:   e.Code,
+		Reason:   "",
 	})
 	assert.NoError(err)
 
@@ -161,9 +162,9 @@ func TestErrorInfoIncludesHTTPStatus(t *testing.T) {
 	aerr := cerr.NewAsertoError("E000003", codes.Unavailable, http.StatusNotAcceptable, "failed to setup")
 
 	info := aerr.ErrorInfo("req-1")
-	assert.Equal("req-1", info.Reason)
-	assert.Equal("E000003", info.Domain)
-	assert.Equal(strconv.Itoa(http.StatusNotAcceptable), info.Metadata[cerr.HTTPStatusErrorMetadata])
+	assert.Equal("req-1", info.GetReason())
+	assert.Equal("E000003", info.GetDomain())
+	assert.Equal(strconv.Itoa(http.StatusNotAcceptable), info.GetMetadata()[cerr.HTTPStatusErrorMetadata])
 }
 
 // returns nil logger if error is nil.

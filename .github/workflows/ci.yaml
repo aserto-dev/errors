@@ -17,15 +17,14 @@ on:
 env:
   PRE_RELEASE: ${{ github.ref == 'refs/heads/main' && 'development' || '' }}
   GO_VER: "1.26"
-  GO_LANGCI_LINT_VER: v2.11.4
-  GO_TESTSUM_VER: "1.13.0"
+  GO_LANGCI_LINT_VER: "v2.13.1"
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - 
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - 
@@ -33,6 +32,10 @@ jobs:
         uses: actions/setup-go@v6
         with:
           go-version-file: 'go.mod'
+      -
+        name: Test Setup
+        run: |
+          make install-gotestsum
       -
         name: Lint
         uses: golangci/golangci-lint-action@v9
