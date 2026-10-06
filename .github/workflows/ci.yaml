@@ -16,7 +16,7 @@ on:
       - release-*
 env:
   PRE_RELEASE: ${{ github.ref == 'refs/heads/main' && 'development' || '' }}
-  GO_LANGCI_LINT_VER: "v2.13.1"
+  GO_LANGCI_LINT_VER: "v2.14.0"
 
 jobs:
   test:
